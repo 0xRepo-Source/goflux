@@ -1,0 +1,135 @@
+package server
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"sync"
+
+	"github.com/example/goflux/pkg/chunk"
+	"github.com/example/goflux/pkg/storage"
+	"github.com/example/goflux/pkg/transport"
+)
+
+// Server is a goflux server instance.
+type Server struct {
+	storage storage.Storage
+	chunks  map[string][]chunk.Chunk // path -> chunks being assembled
+	mu      sync.Mutex
+}
+
+// New creates a new Server.
+func New(store storage.Storage) *Server {
+	return &Server{
+		storage: store,
+		chunks:  make(map[string][]chunk.Chunk),
+	}
+}
+
+// Start starts the HTTP server.
+func (s *Server) Start(addr string) error {
+	http.HandleFunc("/upload", s.handleUpload)
+	http.HandleFunc("/download", s.handleDownload)
+	http.HandleFunc("/list", s.handleList)
+
+	fmt.Printf("goflux server listening on %s\n", addr)
+	return http.ListenAndServe(addr, nil)
+}
+
+func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var chunkData transport.ChunkData
+	if err := json.Unmarshal(body, &chunkData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Store the chunk
+	if s.chunks[chunkData.Path] == nil {
+		s.chunks[chunkData.Path] = make([]chunk.Chunk, chunkData.Total)
+	}
+
+	s.chunks[chunkData.Path][chunkData.ChunkID] = chunk.Chunk{
+		ID:       chunkData.ChunkID,
+		Data:     chunkData.Data,
+		Checksum: chunkData.Checksum,
+	}
+
+	// Check if all chunks received
+	allReceived := true
+	for _, c := range s.chunks[chunkData.Path] {
+		if c.Data == nil {
+			allReceived = false
+			break
+		}
+	}
+
+	if allReceived {
+		// Reassemble and save
+		chunker := chunk.New(0)
+		data, err := chunker.Reassemble(s.chunks[chunkData.Path])
+		if err != nil {
+			http.Error(w, fmt.Sprintf("reassembly failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		if err := s.storage.Put(chunkData.Path, data); err != nil {
+			http.Error(w, fmt.Sprintf("storage failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Clean up chunks
+		delete(s.chunks, chunkData.Path)
+		fmt.Printf("File saved: %s (%d bytes)\n", chunkData.Path, len(data))
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "chunk %d/%d received", chunkData.ChunkID+1, chunkData.Total)
+}
+
+func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "path required", http.StatusBadRequest)
+		return
+	}
+
+	data, err := s.storage.Get(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(data)
+}
+
+func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		path = "/"
+	}
+
+	files, err := s.storage.List(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(files)
+}
