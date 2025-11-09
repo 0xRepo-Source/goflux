@@ -86,4 +86,6 @@ goflux/
     config/         # configuration
 ```
 
+**📖 See [docs/architecture.md](docs/architecture.md) for detailed architecture diagrams and deployment guides.**
+
 See `coreidea.md` for design philosophy and `docs/overview.md` for more details.
