@@ -115,7 +115,10 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		http.Error(w, fmt.Sprintf("write failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
@@ -131,5 +134,8 @@ func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(files)
+	if err := json.NewEncoder(w).Encode(files); err != nil {
+		http.Error(w, fmt.Sprintf("encode failed: %v", err), http.StatusInternalServerError)
+		return
+	}
 }

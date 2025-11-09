@@ -19,7 +19,7 @@ Thank you for your interest in contributing to goflux!
 
 3. **Run tests**
    ```bash
-   go test ./...
+   go test -v ./...
    ```
 
 ## Project Structure
