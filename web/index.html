@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>goflux - File Transfer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 goflux</h1>
+            <p class="subtitle">Fast, resumable file transfer</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <h2>Upload Files</h2>
+                <div class="upload-area" id="dropZone">
+                    <input type="file" id="fileInput" multiple style="display: none;">
+                    <div class="upload-prompt">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Drag & drop files here or <span class="upload-link" onclick="document.getElementById('fileInput').click()">browse</span></p>
+                    </div>
+                </div>
+                <div id="uploadProgress" class="upload-progress" style="display: none;">
+                    <div class="progress-item">
+                        <span class="file-name" id="uploadFileName"></span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="uploadProgressBar"></div>
+                        </div>
+                        <span class="progress-text" id="uploadProgressText">0%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- File Browser Section -->
+            <section class="browser-section">
+                <div class="browser-header">
+                    <h2>Files</h2>
+                    <div class="path-breadcrumb">
+                        <span class="path-segment" onclick="navigateTo('/')">📁 root</span>
+                        <span id="currentPath"></span>
+                    </div>
+                </div>
+                
+                <div class="file-list" id="fileList">
+                    <div class="loading">Loading files...</div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>goflux v0.1.0 | <a href="https://github.com/0xRepo-Source/goflux" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

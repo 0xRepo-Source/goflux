@@ -28,10 +28,19 @@ func New(store storage.Storage) *Server {
 }
 
 // Start starts the HTTP server.
-func (s *Server) Start(addr string) error {
+func (s *Server) Start(addr string, webRoot string) error {
 	http.HandleFunc("/upload", s.handleUpload)
 	http.HandleFunc("/download", s.handleDownload)
 	http.HandleFunc("/list", s.handleList)
+
+	// Enable web UI if webRoot provided
+	if webRoot != "" {
+		if err := s.EnableWebUI(webRoot); err != nil {
+			fmt.Printf("Warning: Could not enable web UI: %v\n", err)
+		} else {
+			fmt.Printf("Web UI enabled at http://%s\n", addr)
+		}
+	}
 
 	fmt.Printf("goflux server listening on %s\n", addr)
 	return http.ListenAndServe(addr, nil)

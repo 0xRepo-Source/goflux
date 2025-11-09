@@ -12,11 +12,12 @@ import (
 func main() {
 	addr := flag.String("addr", ":8080", "server address")
 	storageDir := flag.String("storage", "./data", "storage directory")
+	webUI := flag.String("web", "./web", "web UI directory (empty to disable)")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
 	if *version {
-		fmt.Println("gofluxd version: 0.1.0")
+		fmt.Println("goflux-server version: 0.1.0")
 		return
 	}
 
@@ -28,10 +29,10 @@ func main() {
 
 	// Create and start server
 	srv := server.New(store)
-	fmt.Printf("Starting gofluxd server on %s\n", *addr)
+	fmt.Printf("Starting goflux-server on %s\n", *addr)
 	fmt.Printf("Storage directory: %s\n", *storageDir)
 
-	if err := srv.Start(*addr); err != nil {
+	if err := srv.Start(*addr, *webUI); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }
