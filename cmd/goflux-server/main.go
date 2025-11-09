@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/0xRepo-Source/goflux/pkg/auth"
 	"github.com/0xRepo-Source/goflux/pkg/server"
 	"github.com/0xRepo-Source/goflux/pkg/storage"
 )
@@ -13,6 +14,7 @@ func main() {
 	addr := flag.String("addr", ":8080", "server address")
 	storageDir := flag.String("storage", "./data", "storage directory")
 	webUI := flag.String("web", "./web", "web UI directory (empty to disable)")
+	tokenFile := flag.String("tokens", "", "tokens file for authentication (empty to disable auth)")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -27,8 +29,19 @@ func main() {
 		log.Fatalf("Failed to create storage: %v", err)
 	}
 
-	// Create and start server
+	// Create server
 	srv := server.New(store)
+
+	// Enable authentication if token file provided
+	if *tokenFile != "" {
+		tokenStore, err := auth.NewTokenStore(*tokenFile)
+		if err != nil {
+			log.Fatalf("Failed to load tokens: %v", err)
+		}
+		srv.EnableAuth(tokenStore)
+		fmt.Printf("Loaded authentication from: %s\n", *tokenFile)
+	}
+
 	fmt.Printf("Starting goflux-server on %s\n", *addr)
 	fmt.Printf("Storage directory: %s\n", *storageDir)
 

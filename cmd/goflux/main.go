@@ -14,6 +14,7 @@ func main() {
 	// Global flags
 	serverAddr := flag.String("server", "http://localhost:8080", "server address")
 	chunkSize := flag.Int("chunk-size", 1024*1024, "chunk size in bytes")
+	token := flag.String("token", "", "authentication token (or use GOFLUX_TOKEN env var)")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -28,7 +29,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get token from flag or environment
+	authToken := *token
+	if authToken == "" {
+		authToken = os.Getenv("GOFLUX_TOKEN")
+	}
+
 	client := transport.NewHTTPClient(*serverAddr)
+	if authToken != "" {
+		client.SetAuthToken(authToken)
+	}
+
 	chunker := chunk.New(*chunkSize)
 
 	command := args[0]

@@ -25,8 +25,9 @@ type ChunkData struct {
 
 // HTTPClient is an HTTP-based transport client.
 type HTTPClient struct {
-	BaseURL string
-	client  *http.Client
+	BaseURL   string
+	client    *http.Client
+	authToken string
 }
 
 func NewHTTPClient(baseURL string) *HTTPClient {
@@ -34,6 +35,11 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 		BaseURL: baseURL,
 		client:  &http.Client{},
 	}
+}
+
+// SetAuthToken sets the authentication token for requests
+func (h *HTTPClient) SetAuthToken(token string) {
+	h.authToken = token
 }
 
 func (h *HTTPClient) Dial(addr string) error {
@@ -52,7 +58,18 @@ func (h *HTTPClient) UploadChunk(chunk ChunkData) error {
 		return err
 	}
 
-	resp, err := h.client.Post(h.BaseURL+"/upload", "application/json", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", h.BaseURL+"/upload", bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Add auth token if set
+	if h.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+h.authToken)
+	}
+
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -67,7 +84,17 @@ func (h *HTTPClient) UploadChunk(chunk ChunkData) error {
 
 // Download downloads a file.
 func (h *HTTPClient) Download(path string) ([]byte, error) {
-	resp, err := h.client.Get(h.BaseURL + "/download?path=" + path)
+	req, err := http.NewRequest("GET", h.BaseURL+"/download?path="+path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add auth token if set
+	if h.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+h.authToken)
+	}
+
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +110,17 @@ func (h *HTTPClient) Download(path string) ([]byte, error) {
 
 // List lists files at a path.
 func (h *HTTPClient) List(path string) ([]string, error) {
-	resp, err := h.client.Get(h.BaseURL + "/list?path=" + path)
+	req, err := http.NewRequest("GET", h.BaseURL+"/list?path="+path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add auth token if set
+	if h.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+h.authToken)
+	}
+
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

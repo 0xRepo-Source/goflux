@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/0xRepo-Source/goflux/pkg/auth"
 	"github.com/0xRepo-Source/goflux/pkg/chunk"
 	"github.com/0xRepo-Source/goflux/pkg/storage"
 	"github.com/0xRepo-Source/goflux/pkg/transport"
@@ -14,9 +15,10 @@ import (
 
 // Server is a goflux server instance.
 type Server struct {
-	storage storage.Storage
-	chunks  map[string][]chunk.Chunk // path -> chunks being assembled
-	mu      sync.Mutex
+	storage    storage.Storage
+	chunks     map[string][]chunk.Chunk // path -> chunks being assembled
+	mu         sync.Mutex
+	authMiddle *auth.Middleware // nil if auth disabled
 }
 
 // New creates a new Server.
@@ -27,14 +29,28 @@ func New(store storage.Storage) *Server {
 	}
 }
 
+// EnableAuth enables authentication on the server
+func (s *Server) EnableAuth(tokenStore *auth.TokenStore) {
+	s.authMiddle = auth.NewMiddleware(tokenStore)
+}
+
 // Start starts the HTTP server.
 func (s *Server) Start(addr string, webRoot string) error {
 	// Create a new ServeMux to avoid conflicts with default mux
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/upload", s.handleUpload)
-	mux.HandleFunc("/download", s.handleDownload)
-	mux.HandleFunc("/list", s.handleList)
+	// Register handlers with authentication if enabled
+	if s.authMiddle != nil {
+		mux.HandleFunc("/upload", s.authMiddle.RequireAuth("upload", s.handleUpload))
+		mux.HandleFunc("/download", s.authMiddle.RequireAuth("download", s.handleDownload))
+		mux.HandleFunc("/list", s.authMiddle.RequireAuth("list", s.handleList))
+		fmt.Println("Authentication enabled")
+	} else {
+		mux.HandleFunc("/upload", s.handleUpload)
+		mux.HandleFunc("/download", s.handleDownload)
+		mux.HandleFunc("/list", s.handleList)
+		fmt.Println("⚠️  Authentication disabled - all endpoints are public!")
+	}
 
 	// Enable web UI if webRoot provided
 	if webRoot != "" {

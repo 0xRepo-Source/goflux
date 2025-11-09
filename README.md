@@ -54,7 +54,43 @@ Options:
 **Options:**
 - `--server <url>` - Server URL (default: `http://localhost:8080`)
 - `--chunk-size <bytes>` - Chunk size for uploads (default: 1048576 = 1MB)
+- `--token <token>` - Authentication token (or use `GOFLUX_TOKEN` env var)
 - `--version` - Print version
+
+### Authentication
+
+**Enable authentication on server:**
+```bash
+.\bin\goflux-server.exe --storage ./data --tokens tokens.json
+```
+
+**Manage tokens with goflux-admin:**
+```bash
+# Create a token
+.\bin\goflux-admin.exe create --user alice --permissions upload,download,list --days 30
+
+# List tokens
+.\bin\goflux-admin.exe list
+
+# Revoke a token
+.\bin\goflux-admin.exe revoke tok_abc123def456
+```
+
+**Use tokens with client:**
+```bash
+# Via flag
+.\bin\goflux.exe --token <your-token> put file.txt /file.txt
+
+# Via environment variable
+$env:GOFLUX_TOKEN = "<your-token>"
+.\bin\goflux.exe put file.txt /file.txt
+```
+
+**Permissions:**
+- `upload` - Upload files
+- `download` - Download files
+- `list` - List files
+- `*` - All permissions
 
 ## Features
 
@@ -64,7 +100,10 @@ Options:
 - Automatic chunk reassembly on server
 - Local filesystem storage backend
 - Simple put/get/ls commands
-- **Web UI with drag-and-drop upload and file browser**
+- Web UI with drag-and-drop upload and file browser
+- **Token-based authentication with permission control**
+- **Admin CLI tool for token management**
+- **Token revocation support**
 
 🚧 **Planned:**
 - Resume support (track partial uploads)
@@ -72,7 +111,6 @@ Options:
 - SSH transport
 - Parallel chunk uploads
 - Progress indicators
-- Token authentication
 - S3 storage backend
 - Capability negotiation
 
