@@ -18,12 +18,19 @@ go build -o bin/goflux.exe ./cmd/goflux
 ### Run Server
 
 ```bash
+# With web UI (default)
 .\bin\goflux-server.exe --storage ./data --addr :8080
+
+# Without web UI
+.\bin\goflux-server.exe --storage ./data --addr :8080 --web ""
+
+# Then open http://localhost:8080 in your browser
 ```
 
 Options:
 - `--storage <dir>` - Directory to store files (default: `./data`)
 - `--addr <address>` - Server listen address (default: `:8080`)
+- `--web <dir>` - Web UI directory (default: `./web`, use `""` to disable)
 - `--version` - Print version
 
 ### Use Client
@@ -56,6 +63,7 @@ Options:
 - Automatic chunk reassembly on server
 - Local filesystem storage backend
 - Simple put/get/ls commands
+- **Web UI with drag-and-drop upload and file browser**
 
 🚧 **Planned:**
 - Resume support (track partial uploads)
