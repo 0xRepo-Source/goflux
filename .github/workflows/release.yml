@@ -50,7 +50,7 @@ jobs:
         GOOS=darwin GOARCH=arm64 go build -o goflux-darwin-arm64 ./cmd/goflux
 
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           goflux-server-linux-amd64
