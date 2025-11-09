@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/example/goflux/pkg/server"
-	"github.com/example/goflux/pkg/storage"
+	"github.com/0xRepo-Source/goflux/pkg/server"
+	"github.com/0xRepo-Source/goflux/pkg/storage"
 )
 
 func main() {

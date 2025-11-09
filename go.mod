@@ -1,3 +1,3 @@
-module github.com/example/goflux
+module github.com/0xRepo-Source/goflux
 
 go 1.20

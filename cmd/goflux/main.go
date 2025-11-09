@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/example/goflux/pkg/chunk"
-	"github.com/example/goflux/pkg/transport"
+	"github.com/0xRepo-Source/goflux/pkg/chunk"
+	"github.com/0xRepo-Source/goflux/pkg/transport"
 )
 
 func main() {

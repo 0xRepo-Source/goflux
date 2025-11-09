@@ -12,23 +12,26 @@ func (s *Server) ServeWeb(webRoot string) http.Handler {
 }
 
 // EnableWebUI adds web UI routes to the server
-func (s *Server) EnableWebUI(webRoot string) error {
+func (s *Server) EnableWebUI(mux *http.ServeMux, webRoot string) error {
 	// Check if web directory exists
 	if _, err := os.Stat(webRoot); os.IsNotExist(err) {
 		return err
 	}
 
 	// Serve static files
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(webRoot, "static")))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(filepath.Join(webRoot, "static")))))
 
-	// Serve index.html at root
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// Serve index.html at root only
+	// Note: "/" pattern in Go's ServeMux matches all paths, so we need to be specific
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Only serve index.html for the exact root path
+		// API routes (/upload, /download, /list) are already registered and take precedence
 		if r.URL.Path == "/" {
 			http.ServeFile(w, r, filepath.Join(webRoot, "index.html"))
-		} else {
-			// Let other handlers handle their routes
-			http.DefaultServeMux.ServeHTTP(w, r)
+			return
 		}
+		// For all other paths that aren't handled by other routes, return 404
+		http.NotFound(w, r)
 	})
 
 	return nil

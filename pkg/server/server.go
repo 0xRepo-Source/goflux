@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/example/goflux/pkg/chunk"
-	"github.com/example/goflux/pkg/storage"
-	"github.com/example/goflux/pkg/transport"
+	"github.com/0xRepo-Source/goflux/pkg/chunk"
+	"github.com/0xRepo-Source/goflux/pkg/storage"
+	"github.com/0xRepo-Source/goflux/pkg/transport"
 )
 
 // Server is a goflux server instance.
@@ -29,13 +29,16 @@ func New(store storage.Storage) *Server {
 
 // Start starts the HTTP server.
 func (s *Server) Start(addr string, webRoot string) error {
-	http.HandleFunc("/upload", s.handleUpload)
-	http.HandleFunc("/download", s.handleDownload)
-	http.HandleFunc("/list", s.handleList)
+	// Create a new ServeMux to avoid conflicts with default mux
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/upload", s.handleUpload)
+	mux.HandleFunc("/download", s.handleDownload)
+	mux.HandleFunc("/list", s.handleList)
 
 	// Enable web UI if webRoot provided
 	if webRoot != "" {
-		if err := s.EnableWebUI(webRoot); err != nil {
+		if err := s.EnableWebUI(mux, webRoot); err != nil {
 			fmt.Printf("Warning: Could not enable web UI: %v\n", err)
 		} else {
 			fmt.Printf("Web UI enabled at http://%s\n", addr)
@@ -43,7 +46,7 @@ func (s *Server) Start(addr string, webRoot string) error {
 	}
 
 	fmt.Printf("goflux server listening on %s\n", addr)
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(addr, mux)
 }
 
 func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
