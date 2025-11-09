@@ -25,6 +25,7 @@ go build -o bin/goflux.exe ./cmd/goflux
 .\bin\goflux-server.exe --storage ./data --addr :8080 --web ""
 
 # Then open http://localhost:8080 in your browser
+# Domain open http/s:<yourdomain.com> in your browser
 ```
 
 Options:
