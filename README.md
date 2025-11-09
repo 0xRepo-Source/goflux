@@ -1,5 +1,9 @@
 # goflux
 
+[![CI](https://github.com/0xRepo-Source/goflux/actions/workflows/ci.yml/badge.svg)](https://github.com/0xRepo-Source/goflux/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/0xRepo-Source/goflux)](https://goreportcard.com/report/github.com/0xRepo-Source/goflux)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 "Fast, resumable, auth-flexible file transfer over QUIC/SSH, written in Go."
 
 ## Quick Start

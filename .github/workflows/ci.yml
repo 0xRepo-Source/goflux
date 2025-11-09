@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go: ['1.20', '1.21', '1.22']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.go == '1.22'
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.txt
+        flags: unittests
+        name: codecov-umbrella
+
+    - name: Build server binary
+      run: go build -v -o bin/goflux-server${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/goflux-server
+
+    - name: Build client binary
+      run: go build -v -o bin/goflux${{ matrix.os == 'windows-latest' && '.exe' || '' }} ./cmd/goflux
+
+    - name: Upload artifacts
+      if: matrix.os == 'ubuntu-latest' && matrix.go == '1.22'
+      uses: actions/upload-artifact@v3
+      with:
+        name: goflux-binaries-${{ runner.os }}
+        path: bin/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+        args: --timeout=5m

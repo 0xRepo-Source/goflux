@@ -10,7 +10,7 @@ Thank you for your interest in contributing to goflux!
 
 2. **Clone and build**
    ```bash
-   git clone https://github.com/yourusername/goflux.git
+   git clone https://github.com/0xRepo-Source/goflux.git
    cd goflux
    go mod download
    go build -o bin/goflux-server ./cmd/goflux-server
