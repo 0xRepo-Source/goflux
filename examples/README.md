@@ -24,7 +24,7 @@ This demonstrates:
 
 ```bash
 # Terminal 1: Start server
-../bin/gofluxd --storage ./demo-data
+../bin/goflux-server --storage ./demo-data
 
 # Terminal 2: Upload a file
 ../bin/goflux put myfile.txt /files/myfile.txt

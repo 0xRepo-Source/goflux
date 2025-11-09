@@ -28,7 +28,7 @@ This repository contains a working HTTP-based file transfer implementation with 
 
 ### Binaries
 
-- `cmd/gofluxd` — Server binary
+- `cmd/goflux-server` — Server binary
 - `cmd/goflux` — Client CLI
 
 ### Core Libraries

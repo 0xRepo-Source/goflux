@@ -5,7 +5,7 @@ Write-Host "=== goflux Demo ===" -ForegroundColor Cyan
 
 # 1. Start server in background
 Write-Host "`n1. Starting server..." -ForegroundColor Yellow
-Start-Process -NoNewWindow -FilePath "..\bin\gofluxd.exe" -ArgumentList "--storage","./demo-data"
+Start-Process -NoNewWindow -FilePath "..\bin\goflux-server.exe" -ArgumentList "--storage","./demo-data"
 Start-Sleep -Seconds 2
 
 # 2. Create test files

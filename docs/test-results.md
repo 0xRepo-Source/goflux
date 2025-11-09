@@ -48,7 +48,7 @@
 
 ```powershell
 # Start server
-.\bin\gofluxd.exe --storage ./data
+.\bin\goflux-server.exe --storage ./data
 
 # Upload file
 .\bin\goflux.exe put local.txt /remote/file.txt

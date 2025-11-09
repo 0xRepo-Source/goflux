@@ -13,7 +13,7 @@ Thank you for your interest in contributing to goflux!
    git clone https://github.com/yourusername/goflux.git
    cd goflux
    go mod download
-   go build -o bin/gofluxd ./cmd/gofluxd
+   go build -o bin/goflux-server ./cmd/goflux-server
    go build -o bin/goflux ./cmd/goflux
    ```
 

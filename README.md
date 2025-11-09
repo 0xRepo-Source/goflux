@@ -7,14 +7,14 @@
 ### Build
 
 ```bash
-go build -o bin/gofluxd.exe ./cmd/gofluxd
+go build -o bin/goflux-server.exe ./cmd/goflux-server
 go build -o bin/goflux.exe ./cmd/goflux
 ```
 
 ### Run Server
 
 ```bash
-.\bin\gofluxd.exe --storage ./data --addr :8080
+.\bin\goflux-server.exe --storage ./data --addr :8080
 ```
 
 Options:
@@ -68,7 +68,7 @@ Options:
 ```
 goflux/
   cmd/
-    gofluxd/        # server binary
+    goflux-server/  # server binary
     goflux/         # client CLI
   pkg/
     auth/           # SSH, token, JWT (planned)
