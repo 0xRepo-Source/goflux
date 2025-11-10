@@ -82,6 +82,46 @@ func (h *HTTPClient) UploadChunk(chunk ChunkData) error {
 	return nil
 }
 
+// UploadStatusResponse contains the status of an upload session
+type UploadStatusResponse struct {
+	Exists        bool   `json:"exists"`
+	TotalChunks   int    `json:"total_chunks"`
+	ReceivedMap   []bool `json:"received_map"`
+	MissingChunks []int  `json:"missing_chunks"`
+	Completed     bool   `json:"completed"`
+}
+
+// QueryUploadStatus checks the status of an upload on the server
+func (h *HTTPClient) QueryUploadStatus(path string) (*UploadStatusResponse, error) {
+	req, err := http.NewRequest("GET", h.BaseURL+"/upload/status?path="+path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add auth token if set
+	if h.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+h.authToken)
+	}
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("status query failed: %s", string(body))
+	}
+
+	var status UploadStatusResponse
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
 // Download downloads a file.
 func (h *HTTPClient) Download(path string) ([]byte, error) {
 	req, err := http.NewRequest("GET", h.BaseURL+"/download?path="+path, nil)

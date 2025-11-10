@@ -57,6 +57,29 @@ Options:
 - `--token <token>` - Authentication token (or use `GOFLUX_TOKEN` env var)
 - `--version` - Print version
 
+### Resume Interrupted Uploads
+
+goflux automatically resumes interrupted uploads! If an upload is interrupted (network failure, client crash, etc.), simply run the same `put` command again:
+
+```bash
+# Initial upload (interrupted after 50% )
+.\bin\goflux.exe put largefile.zip /largefile.zip
+# ... network disconnects ...
+
+# Resume upload (automatically skips already-uploaded chunks)
+.\bin\goflux.exe put largefile.zip /largefile.zip
+# Output: 🔄 Resuming upload: 127/250 chunks already uploaded
+```
+
+**How it works:**
+- Server tracks upload sessions in metadata files (`.goflux-meta/`)
+- Client queries server before uploading to check for existing sessions
+- Only missing chunks are uploaded, saving time and bandwidth
+- Sessions are automatically cleaned up after successful uploads
+
+**Server options:**
+- `--meta <dir>` - Metadata directory for resume sessions (default: `./.goflux-meta`)
+
 ### Authentication
 
 **Enable authentication on server:**
@@ -94,19 +117,23 @@ $env:GOFLUX_TOKEN = "<your-token>"
 
 ## Features
 
-✅ **Implemented (v0.1.0):**
+✅ **Implemented (v0.2.0):**
 - HTTP transport for file transfer
 - Chunked uploads with integrity verification (SHA-256)
 - Automatic chunk reassembly on server
+- **Resume interrupted uploads automatically** 🆕
+  - Server tracks upload sessions with persistent metadata
+  - Client automatically detects and resumes partial uploads
+  - Skip already-uploaded chunks to save bandwidth
+  - Session cleanup after successful uploads
 - Local filesystem storage backend
 - Simple put/get/ls commands
 - Web UI with drag-and-drop upload and file browser
-- **Token-based authentication with permission control**
-- **Admin CLI tool for token management**
-- **Token revocation support**
+- Token-based authentication with permission control
+- Admin CLI tool for token management
+- Token revocation support
 
 🚧 **Planned:**
-- Resume support (track partial uploads)
 - QUIC transport
 - SSH transport
 - Parallel chunk uploads

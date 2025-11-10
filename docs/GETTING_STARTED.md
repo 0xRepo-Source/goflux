@@ -70,6 +70,31 @@ Now you have `downloaded.txt` with the same content! ✨
 .\bin\goflux.exe ls /photos
 ```
 
+## 🔄 What if the Upload Fails?
+
+Don't worry! goflux automatically resumes interrupted uploads.
+
+If your upload is interrupted (Wi-Fi drops, computer crashes, etc.), just run the same command again:
+
+```bash
+# Upload starts...
+.\bin\goflux.exe put bigfile.zip /bigfile.zip
+# ... oops, internet disconnects! ...
+
+# Just run it again - it will resume automatically!
+.\bin\goflux.exe put bigfile.zip /bigfile.zip
+```
+
+**What you'll see:**
+```
+Uploading bigfile.zip (50000000 bytes, 48 chunks)...
+🔄 Resuming upload: 25/48 chunks already uploaded
+  Uploaded chunk 26/48
+  ... continues from where it left off ...
+```
+
+**Magic!** ✨ It remembers what was already uploaded and only sends the missing parts.
+
 ## Using the Web Browser UI
 
 Don't want to use the terminal? No problem!

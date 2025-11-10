@@ -86,23 +86,67 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 	chunks := chunker.Split(data)
 	fmt.Printf("Uploading %s (%d bytes, %d chunks)...\n", localPath, len(data), len(chunks))
 
-	// Upload each chunk
-	for i, c := range chunks {
-		chunkData := transport.ChunkData{
-			Path:     remotePath,
-			ChunkID:  c.ID,
-			Data:     c.Data,
-			Checksum: c.Checksum,
-			Total:    len(chunks),
+	// Query server for existing upload session
+	status, err := client.QueryUploadStatus(remotePath)
+	if err != nil {
+		fmt.Printf("⚠️  Could not query upload status: %v (starting fresh upload)\n", err)
+	} else if status.Exists && !status.Completed {
+		fmt.Printf("🔄 Resuming upload: %d/%d chunks already uploaded\n",
+			len(chunks)-len(status.MissingChunks), len(chunks))
+
+		// Create a map of missing chunks for quick lookup
+		missingMap := make(map[int]bool)
+		for _, chunkID := range status.MissingChunks {
+			missingMap[chunkID] = true
 		}
 
-		if err := client.UploadChunk(chunkData); err != nil {
-			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
+		// Only upload missing chunks
+		uploadedCount := 0
+		for i, c := range chunks {
+			if !missingMap[c.ID] {
+				// Chunk already uploaded, skip it
+				continue
+			}
+
+			chunkData := transport.ChunkData{
+				Path:     remotePath,
+				ChunkID:  c.ID,
+				Data:     c.Data,
+				Checksum: c.Checksum,
+				Total:    len(chunks),
+			}
+
+			if err := client.UploadChunk(chunkData); err != nil {
+				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
+			}
+			uploadedCount++
+			fmt.Printf("  Uploaded chunk %d/%d (resume: %d new)\n", i+1, len(chunks), uploadedCount)
 		}
-		fmt.Printf("  Uploaded chunk %d/%d\n", i+1, len(chunks))
+
+		if uploadedCount == 0 {
+			fmt.Printf("✓ All chunks already uploaded!\n")
+		} else {
+			fmt.Printf("✓ Resume complete: uploaded %d new chunks\n", uploadedCount)
+		}
+	} else {
+		// Fresh upload - no existing session
+		for i, c := range chunks {
+			chunkData := transport.ChunkData{
+				Path:     remotePath,
+				ChunkID:  c.ID,
+				Data:     c.Data,
+				Checksum: c.Checksum,
+				Total:    len(chunks),
+			}
+
+			if err := client.UploadChunk(chunkData); err != nil {
+				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
+			}
+			fmt.Printf("  Uploaded chunk %d/%d\n", i+1, len(chunks))
+		}
+		fmt.Printf("✓ Upload complete: %s → %s\n", localPath, remotePath)
 	}
 
-	fmt.Printf("✓ Upload complete: %s → %s\n", localPath, remotePath)
 	return nil
 }
 

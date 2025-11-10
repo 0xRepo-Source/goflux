@@ -15,6 +15,7 @@ func main() {
 	storageDir := flag.String("storage", "./data", "storage directory")
 	webUI := flag.String("web", "./web", "web UI directory (empty to disable)")
 	tokenFile := flag.String("tokens", "", "tokens file for authentication (empty to disable auth)")
+	metaDir := flag.String("meta", "./.goflux-meta", "metadata directory for resume sessions")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -30,7 +31,10 @@ func main() {
 	}
 
 	// Create server
-	srv := server.New(store)
+	srv, err := server.New(store, *metaDir)
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
 
 	// Enable authentication if token file provided
 	if *tokenFile != "" {
