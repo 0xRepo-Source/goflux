@@ -50,6 +50,13 @@ Now you have `downloaded.txt` with the same content! ✨
 .\bin\goflux.exe put photo.jpg /photos/vacation.jpg
 ```
 
+**You'll see a nice progress bar:**
+```
+Uploading photo.jpg (2450000 bytes, 3 chunks)...
+Uploading... 100% [========================================] (1.2 MB/s)
+✓ Upload complete: photo.jpg → /photos/vacation.jpg
+```
+
 ### Download a file
 ```bash
 .\bin\goflux.exe get <server-path> <local-file>

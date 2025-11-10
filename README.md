@@ -117,15 +117,20 @@ $env:GOFLUX_TOKEN = "<your-token>"
 
 ## Features
 
-✅ **Implemented (v0.2.0):**
+✅ **Implemented (v0.3.0):**
 - HTTP transport for file transfer
 - Chunked uploads with integrity verification (SHA-256)
 - Automatic chunk reassembly on server
-- **Resume interrupted uploads automatically** 🆕
+- **Resume interrupted uploads automatically**
   - Server tracks upload sessions with persistent metadata
   - Client automatically detects and resumes partial uploads
   - Skip already-uploaded chunks to save bandwidth
   - Session cleanup after successful uploads
+- **Real-time progress bars** 🆕
+  - Visual upload progress with speed and ETA
+  - Color-coded progress indicators
+  - Resume progress shows new vs existing chunks
+  - Spinner for downloads
 - Local filesystem storage backend
 - Simple put/get/ls commands
 - Web UI with drag-and-drop upload and file browser

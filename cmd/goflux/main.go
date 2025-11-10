@@ -8,6 +8,7 @@ import (
 
 	"github.com/0xRepo-Source/goflux/pkg/chunk"
 	"github.com/0xRepo-Source/goflux/pkg/transport"
+	"github.com/schollz/progressbar/v3"
 )
 
 func main() {
@@ -88,11 +89,44 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 
 	// Query server for existing upload session
 	status, err := client.QueryUploadStatus(remotePath)
+
+	var bar *progressbar.ProgressBar
+	var totalToUpload int
+
 	if err != nil {
 		fmt.Printf("⚠️  Could not query upload status: %v (starting fresh upload)\n", err)
+		totalToUpload = len(chunks)
+		bar = progressbar.NewOptions(totalToUpload,
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetWidth(40),
+			progressbar.OptionSetDescription("[cyan]Uploading...[reset]"),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "[green]=[reset]",
+				SaucerHead:    "[green]>[reset]",
+				SaucerPadding: " ",
+				BarStart:      "[",
+				BarEnd:        "]",
+			}),
+		)
 	} else if status.Exists && !status.Completed {
-		fmt.Printf("🔄 Resuming upload: %d/%d chunks already uploaded\n",
-			len(chunks)-len(status.MissingChunks), len(chunks))
+		alreadyUploaded := len(chunks) - len(status.MissingChunks)
+		fmt.Printf("🔄 Resuming upload: %d/%d chunks already uploaded\n", alreadyUploaded, len(chunks))
+
+		totalToUpload = len(status.MissingChunks)
+		bar = progressbar.NewOptions(totalToUpload,
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetWidth(40),
+			progressbar.OptionSetDescription("[cyan]Resuming...[reset]"),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "[yellow]=[reset]",
+				SaucerHead:    "[yellow]>[reset]",
+				SaucerPadding: " ",
+				BarStart:      "[",
+				BarEnd:        "]",
+			}),
+		)
 
 		// Create a map of missing chunks for quick lookup
 		missingMap := make(map[int]bool)
@@ -101,7 +135,6 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 		}
 
 		// Only upload missing chunks
-		uploadedCount := 0
 		for i, c := range chunks {
 			if !missingMap[c.ID] {
 				// Chunk already uploaded, skip it
@@ -117,46 +150,77 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 			}
 
 			if err := client.UploadChunk(chunkData); err != nil {
+				bar.Close()
 				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 			}
-			uploadedCount++
-			fmt.Printf("  Uploaded chunk %d/%d (resume: %d new)\n", i+1, len(chunks), uploadedCount)
+			bar.Add(1)
 		}
 
-		if uploadedCount == 0 {
-			fmt.Printf("✓ All chunks already uploaded!\n")
-		} else {
-			fmt.Printf("✓ Resume complete: uploaded %d new chunks\n", uploadedCount)
-		}
+		bar.Finish()
+		fmt.Printf("\n✓ Resume complete: uploaded %d new chunks\n", totalToUpload)
+		return nil
 	} else {
 		// Fresh upload - no existing session
-		for i, c := range chunks {
-			chunkData := transport.ChunkData{
-				Path:     remotePath,
-				ChunkID:  c.ID,
-				Data:     c.Data,
-				Checksum: c.Checksum,
-				Total:    len(chunks),
-			}
-
-			if err := client.UploadChunk(chunkData); err != nil {
-				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
-			}
-			fmt.Printf("  Uploaded chunk %d/%d\n", i+1, len(chunks))
-		}
-		fmt.Printf("✓ Upload complete: %s → %s\n", localPath, remotePath)
+		totalToUpload = len(chunks)
+		bar = progressbar.NewOptions(totalToUpload,
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetWidth(40),
+			progressbar.OptionSetDescription("[cyan]Uploading...[reset]"),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "[green]=[reset]",
+				SaucerHead:    "[green]>[reset]",
+				SaucerPadding: " ",
+				BarStart:      "[",
+				BarEnd:        "]",
+			}),
+		)
 	}
 
+	// Upload chunks
+	for i, c := range chunks {
+		chunkData := transport.ChunkData{
+			Path:     remotePath,
+			ChunkID:  c.ID,
+			Data:     c.Data,
+			Checksum: c.Checksum,
+			Total:    len(chunks),
+		}
+
+		if err := client.UploadChunk(chunkData); err != nil {
+			bar.Close()
+			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
+		}
+		bar.Add(1)
+	}
+
+	bar.Finish()
+	fmt.Printf("\n✓ Upload complete: %s → %s\n", localPath, remotePath)
 	return nil
 }
 
 func doGet(client *transport.HTTPClient, remotePath, localPath string) error {
 	fmt.Printf("Downloading %s...\n", remotePath)
 
+	// Create indeterminate progress bar (we don't know size beforehand)
+	bar := progressbar.NewOptions(-1,
+		progressbar.OptionSetDescription("[cyan]Downloading...[reset]"),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionShowCount(),
+		progressbar.OptionShowIts(),
+		progressbar.OptionEnableColorCodes(true),
+	)
+	bar.RenderBlank()
+
 	data, err := client.Download(remotePath)
 	if err != nil {
+		bar.Close()
 		return err
 	}
+
+	bar.Finish()
+	fmt.Printf("\n")
 
 	if err := os.WriteFile(localPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
