@@ -15,7 +15,7 @@
 - ✓ Binary-safe transfer
 
 ### Server
-- ✓ HTTP transport on port 8080
+- ✓ HTTP transport on port 80
 - ✓ Local filesystem storage
 - ✓ Concurrent chunk handling
 - ✓ Automatic directory creation

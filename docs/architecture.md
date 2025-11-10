@@ -140,7 +140,7 @@ graph LR
 
 ```mermaid
 graph LR
-    A[Your PC] -->|HTTP :8080| B[goflux-server]
+    A[Your PC] -->|HTTP :80| B[goflux-server]
     B --> C[Storage]
     
     style A fill:#4CAF50
@@ -150,10 +150,10 @@ graph LR
 **Usage:**
 ```bash
 # Server
-./goflux-server --addr :8080 --storage ./data
+./goflux-server --addr :80 --storage ./data
 
 # Client
-./goflux --server http://localhost:8080 put file.txt /file.txt
+./goflux --server http://localhost:80 put file.txt /file.txt
 ```
 
 ## Security Considerations
@@ -227,11 +227,11 @@ graph TB
 **Server-side:**
 ```bash
 # Development (HTTP)
-Allow TCP port 8080 from trusted IPs
+Allow TCP port 80 from trusted IPs
 
 # Production (with reverse proxy)
 Allow TCP port 443 from anywhere
-Allow TCP port 8080 from localhost only
+Allow TCP port 80 from localhost only
 ```
 
 ### Bandwidth Considerations
@@ -267,7 +267,7 @@ After=network.target
 [Service]
 Type=simple
 User=goflux
-ExecStart=/usr/local/bin/goflux-server --addr localhost:8080 --storage /var/goflux/data
+ExecStart=/usr/local/bin/goflux-server --addr localhost:80 --storage /var/goflux/data
 Restart=on-failure
 
 [Install]
@@ -290,7 +290,7 @@ sudo nano /etc/caddy/Caddyfile
 
 ```
 files.yourdomain.com {
-    reverse_proxy localhost:8080
+    reverse_proxy localhost:80
 }
 ```
 
