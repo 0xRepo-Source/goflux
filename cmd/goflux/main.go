@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -82,121 +85,113 @@ func main() {
 }
 
 func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remotePath string) error {
-	// Read local file
-	data, err := os.ReadFile(localPath)
+	// Open file for streaming
+	file, err := os.Open(localPath)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Get file size
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+	fileSize := stat.Size()
+
+	// Calculate number of chunks
+	numChunks := int(fileSize / int64(chunker.Size))
+	if fileSize%int64(chunker.Size) != 0 {
+		numChunks++
 	}
 
-	// Split into chunks
-	chunks := chunker.Split(data)
-	fmt.Printf("Uploading %s (%d bytes, %d chunks)...\n", localPath, len(data), len(chunks))
+	fmt.Printf("Uploading %s (%d bytes, %d chunks)...\n", localPath, fileSize, numChunks)
 
 	// Query server for existing upload session
 	status, err := client.QueryUploadStatus(remotePath)
 
-	var bar *progressbar.ProgressBar
+	// Track which chunks to upload
+	chunksToUpload := make(map[int]bool)
 	var totalToUpload int
 
 	if err != nil {
 		fmt.Printf("⚠️  Could not query upload status: %v (starting fresh upload)\n", err)
-		totalToUpload = len(chunks)
-		bar = progressbar.NewOptions(totalToUpload,
-			progressbar.OptionEnableColorCodes(true),
-			progressbar.OptionShowBytes(true),
-			progressbar.OptionSetWidth(40),
-			progressbar.OptionSetDescription("[cyan]Uploading...[reset]"),
-			progressbar.OptionSetTheme(progressbar.Theme{
-				Saucer:        "[green]=[reset]",
-				SaucerHead:    "[green]>[reset]",
-				SaucerPadding: " ",
-				BarStart:      "[",
-				BarEnd:        "]",
-			}),
-		)
-	} else if status.Exists && !status.Completed {
-		alreadyUploaded := len(chunks) - len(status.MissingChunks)
-		fmt.Printf("🔄 Resuming upload: %d/%d chunks already uploaded\n", alreadyUploaded, len(chunks))
-
-		totalToUpload = len(status.MissingChunks)
-		bar = progressbar.NewOptions(totalToUpload,
-			progressbar.OptionEnableColorCodes(true),
-			progressbar.OptionShowBytes(true),
-			progressbar.OptionSetWidth(40),
-			progressbar.OptionSetDescription("[cyan]Resuming...[reset]"),
-			progressbar.OptionSetTheme(progressbar.Theme{
-				Saucer:        "[yellow]=[reset]",
-				SaucerHead:    "[yellow]>[reset]",
-				SaucerPadding: " ",
-				BarStart:      "[",
-				BarEnd:        "]",
-			}),
-		)
-
-		// Create a map of missing chunks for quick lookup
-		missingMap := make(map[int]bool)
-		for _, chunkID := range status.MissingChunks {
-			missingMap[chunkID] = true
+		// Upload all chunks
+		for i := 0; i < numChunks; i++ {
+			chunksToUpload[i] = true
 		}
+		totalToUpload = numChunks
+	} else if status.Exists && !status.Completed {
+		alreadyUploaded := numChunks - len(status.MissingChunks)
+		fmt.Printf("🔄 Resuming upload: %d/%d chunks already uploaded\n", alreadyUploaded, numChunks)
 
 		// Only upload missing chunks
-		for i, c := range chunks {
-			if !missingMap[c.ID] {
-				// Chunk already uploaded, skip it
-				continue
-			}
+		for _, chunkID := range status.MissingChunks {
+			chunksToUpload[chunkID] = true
+		}
+		totalToUpload = len(status.MissingChunks)
+	} else {
+		// Fresh upload - upload all chunks
+		for i := 0; i < numChunks; i++ {
+			chunksToUpload[i] = true
+		}
+		totalToUpload = numChunks
+	}
 
-			chunkData := transport.ChunkData{
+	// Create progress bar
+	bar := progressbar.NewOptions(totalToUpload,
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(40),
+		progressbar.OptionSetDescription("[cyan]Uploading...[reset]"),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[green]=[reset]",
+			SaucerHead:    "[green]>[reset]",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}),
+	)
+
+	// Stream and upload chunks
+	buffer := make([]byte, chunker.Size)
+	chunkID := 0
+
+	for {
+		// Read chunk from file
+		n, err := file.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			bar.Close()
+			return fmt.Errorf("failed to read chunk: %w", err)
+		}
+
+		// Only upload if needed
+		if chunksToUpload[chunkID] {
+			// Calculate checksum for this chunk
+			chunkData := buffer[:n]
+			hash := sha256.Sum256(chunkData)
+			checksum := hex.EncodeToString(hash[:])
+
+			// Upload chunk
+			uploadData := transport.ChunkData{
 				Path:     remotePath,
-				ChunkID:  c.ID,
-				Data:     c.Data,
-				Checksum: c.Checksum,
-				Total:    len(chunks),
+				ChunkID:  chunkID,
+				Data:     chunkData,
+				Checksum: checksum,
+				Total:    numChunks,
 			}
 
-			if err := client.UploadChunk(chunkData); err != nil {
+			if err := client.UploadChunk(uploadData); err != nil {
 				bar.Close()
-				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
+				return fmt.Errorf("failed to upload chunk %d: %w", chunkID, err)
 			}
 			_ = bar.Add(1)
 		}
 
-		_ = bar.Finish()
-		fmt.Printf("\n✓ Resume complete: uploaded %d new chunks\n", totalToUpload)
-		return nil
-	} else {
-		// Fresh upload - no existing session
-		totalToUpload = len(chunks)
-		bar = progressbar.NewOptions(totalToUpload,
-			progressbar.OptionEnableColorCodes(true),
-			progressbar.OptionShowBytes(true),
-			progressbar.OptionSetWidth(40),
-			progressbar.OptionSetDescription("[cyan]Uploading...[reset]"),
-			progressbar.OptionSetTheme(progressbar.Theme{
-				Saucer:        "[green]=[reset]",
-				SaucerHead:    "[green]>[reset]",
-				SaucerPadding: " ",
-				BarStart:      "[",
-				BarEnd:        "]",
-			}),
-		)
-	}
-
-	// Upload chunks
-	for i, c := range chunks {
-		chunkData := transport.ChunkData{
-			Path:     remotePath,
-			ChunkID:  c.ID,
-			Data:     c.Data,
-			Checksum: c.Checksum,
-			Total:    len(chunks),
-		}
-
-		if err := client.UploadChunk(chunkData); err != nil {
-			bar.Close()
-			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
-		}
-		_ = bar.Add(1)
+		chunkID++
 	}
 
 	_ = bar.Finish()
