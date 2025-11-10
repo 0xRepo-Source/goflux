@@ -123,7 +123,6 @@ goflux-admin.exe: TBD
 ## Contributors
 
 - Matthew Galpin (@0xRepo-Source) - Bug discovery and testing
-- GitHub Copilot - Implementation
 
 ## Next Steps
 
