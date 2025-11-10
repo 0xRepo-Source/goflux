@@ -12,12 +12,7 @@ import (
 )
 
 func main() {
-	configFile := flag.String("config", "goflux.json", "configuration file path")
-	addr := flag.String("addr", "", "server address (overrides config)")
-	storageDir := flag.String("storage", "", "storage directory (overrides config)")
-	webUI := flag.String("web", "", "web UI directory (overrides config)")
-	tokenFile := flag.String("tokens", "", "tokens file for authentication (overrides config)")
-	metaDir := flag.String("meta", "", "metadata directory for resume sessions (overrides config)")
+	configFile := flag.String("config", "goflux.json", "path to configuration file")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -30,23 +25,6 @@ func main() {
 	cfg, err := config.LoadOrCreateConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
-	}
-
-	// Command-line flags override config file
-	if *addr != "" {
-		cfg.Server.Address = *addr
-	}
-	if *storageDir != "" {
-		cfg.Server.StorageDir = *storageDir
-	}
-	if *webUI != "" {
-		cfg.Server.WebUIDir = *webUI
-	}
-	if *tokenFile != "" {
-		cfg.Server.TokensFile = *tokenFile
-	}
-	if *metaDir != "" {
-		cfg.Server.MetaDir = *metaDir
 	}
 
 	// Create storage backend

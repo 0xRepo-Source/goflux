@@ -51,11 +51,47 @@ Options:
 .\bin\goflux.exe ls /remote/path
 ```
 
-**Options:**
-- `--server <url>` - Server URL (default: `http://localhost:8080`)
-- `--chunk-size <bytes>` - Chunk size for uploads (default: 1048576 = 1MB)
-- `--token <token>` - Authentication token (or use `GOFLUX_TOKEN` env var)
-- `--version` - Print version
+### Configuration
+
+goflux uses JSON configuration files instead of command-line flags for cleaner usage:
+
+**Default config (goflux.json):**
+```json
+{
+  "server": {
+    "address": "0.0.0.0:8080",
+    "storage_dir": "./data",
+    "webui_dir": "./web",
+    "meta_dir": "./.goflux-meta",
+    "tokens_file": ""
+  },
+  "client": {
+    "server_url": "http://localhost:8080",
+    "chunk_size": 1048576,
+    "token": ""
+  }
+}
+```
+
+**Usage with config:**
+```bash
+# Uses goflux.json by default
+.\bin\goflux.exe ls
+
+# Use a different config file
+.\bin\goflux.exe --config prod.json put file.txt /file.txt
+
+# Server also uses config
+.\bin\goflux-server.exe --config goflux-production.json
+```
+
+**Environment variable for tokens:**
+```powershell
+$env:GOFLUX_TOKEN = "tok_your_token_here"
+.\bin\goflux.exe ls
+```
+
+**Config priority:** Config file → Environment variable (tokens only)
 
 ### Resume Interrupted Uploads
 
@@ -77,14 +113,17 @@ goflux automatically resumes interrupted uploads! If an upload is interrupted (n
 - Only missing chunks are uploaded, saving time and bandwidth
 - Sessions are automatically cleaned up after successful uploads
 
-**Server options:**
-- `--meta <dir>` - Metadata directory for resume sessions (default: `./.goflux-meta`)
-
 ### Authentication
 
 **Enable authentication on server:**
-```bash
-.\bin\goflux-server.exe --storage ./data --tokens tokens.json
+
+Edit your config file to set `tokens_file`:
+```json
+{
+  "server": {
+    "tokens_file": "tokens.json"
+  }
+}
 ```
 
 **Manage tokens with goflux-admin:**
@@ -100,12 +139,10 @@ goflux automatically resumes interrupted uploads! If an upload is interrupted (n
 ```
 
 **Use tokens with client:**
-```bash
-# Via flag
-.\bin\goflux.exe --token <your-token> put file.txt /file.txt
 
-# Via environment variable
-$env:GOFLUX_TOKEN = "<your-token>"
+Set token in config file or use environment variable:
+```powershell
+$env:GOFLUX_TOKEN = "tok_your_token_here"
 .\bin\goflux.exe put file.txt /file.txt
 ```
 
@@ -131,9 +168,13 @@ $env:GOFLUX_TOKEN = "<your-token>"
   - Color-coded progress indicators
   - Resume progress shows new vs existing chunks
   - Spinner for downloads
+- **JSON configuration system** 🆕
+  - Simple config file management
+  - No messy command-line flags
+  - Environment variable support for tokens
 - Local filesystem storage backend
 - Simple put/get/ls commands
-- Web UI with drag-and-drop upload and file browser
+- Web UI with drag-and-drop upload and file browser (Material Design dark mode)
 - Token-based authentication with permission control
 - Admin CLI tool for token management
 - Token revocation support
@@ -142,7 +183,6 @@ $env:GOFLUX_TOKEN = "<your-token>"
 - QUIC transport
 - SSH transport
 - Parallel chunk uploads
-- Progress indicators
 - S3 storage backend
 - Capability negotiation
 

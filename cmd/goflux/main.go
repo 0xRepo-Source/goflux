@@ -13,11 +13,8 @@ import (
 )
 
 func main() {
-	// Global flags
-	configFile := flag.String("config", "goflux.json", "configuration file path")
-	serverAddr := flag.String("server", "", "server address (overrides config)")
-	chunkSize := flag.Int("chunk-size", 0, "chunk size in bytes (overrides config)")
-	token := flag.String("token", "", "authentication token (overrides config and env var)")
+	// Simple flags - config file only
+	configFile := flag.String("config", "goflux.json", "path to configuration file")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -38,19 +35,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Command-line flags override config file
-	if *serverAddr != "" {
-		cfg.Client.ServerURL = *serverAddr
-	}
-	if *chunkSize > 0 {
-		cfg.Client.ChunkSize = *chunkSize
-	}
-
-	// Get token: flag > config > environment
-	authToken := *token
-	if authToken == "" && cfg.Client.Token != "" {
-		authToken = cfg.Client.Token
-	}
+	// Get token from config or environment
+	authToken := cfg.Client.Token
 	if authToken == "" {
 		authToken = os.Getenv("GOFLUX_TOKEN")
 	}
@@ -265,11 +251,19 @@ func doList(client *transport.HTTPClient, path string) error {
 func printUsage() {
 	fmt.Println("goflux - Fast, resumable file transfer")
 	fmt.Println("\nUsage:")
-	fmt.Println("  goflux put <local-file> <remote-path>   Upload a file")
-	fmt.Println("  goflux get <remote-path> <local-file>   Download a file")
-	fmt.Println("  goflux ls [path]                        List files")
+	fmt.Println("  goflux [--config <file>] <command> [args...]")
+	fmt.Println("\nCommands:")
+	fmt.Println("  put <local-file> <remote-path>   Upload a file")
+	fmt.Println("  get <remote-path> <local-file>   Download a file")
+	fmt.Println("  ls [path]                        List files (default: /)")
 	fmt.Println("\nFlags:")
-	fmt.Println("  --server <url>        Server address (default: http://localhost:8080)")
-	fmt.Println("  --chunk-size <bytes>  Chunk size (default: 1048576)")
-	fmt.Println("  --version             Print version")
+	fmt.Println("  --config <file>   Configuration file (default: goflux.json)")
+	fmt.Println("  --version         Print version")
+	fmt.Println("\nConfiguration:")
+	fmt.Println("  Edit goflux.json to set server URL, token, and chunk size")
+	fmt.Println("  Use GOFLUX_TOKEN environment variable for authentication")
+	fmt.Println("\nExamples:")
+	fmt.Println("  goflux ls")
+	fmt.Println("  goflux put file.txt /uploads/file.txt")
+	fmt.Println("  goflux --config prod.json get /data/file.zip ./file.zip")
 }
