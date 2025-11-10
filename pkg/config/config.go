@@ -34,7 +34,7 @@ type Config struct {
 // DefaultServerConfig returns default server configuration
 func DefaultServerConfig() ServerConfig {
 	return ServerConfig{
-		Address:     ":8080",
+		Address:     "0.0.0.0:80",
 		StorageDir:  "./data",
 		WebUIDir:    "./web",
 		MetaDir:     "./.goflux-meta",
@@ -47,7 +47,7 @@ func DefaultServerConfig() ServerConfig {
 // DefaultClientConfig returns default client configuration
 func DefaultClientConfig() ClientConfig {
 	return ClientConfig{
-		ServerURL: "http://localhost:8080",
+		ServerURL: "http://localhost",
 		ChunkSize: 1024 * 1024, // 1MB
 		Token:     "",
 	}
