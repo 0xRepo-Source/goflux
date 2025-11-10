@@ -58,7 +58,10 @@ func createCommand() {
 	days := fs.Int("days", 365, "days until expiration")
 	tokenFile := fs.String("file", "tokens.json", "tokens file path")
 
-	fs.Parse(os.Args[2:])
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		fmt.Printf("Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	if *user == "" {
 		fmt.Println("Error: --user is required")
@@ -119,7 +122,10 @@ func listCommand() {
 	tokenFile := fs.String("file", "tokens.json", "tokens file path")
 	showRevoked := fs.Bool("revoked", false, "show revoked tokens")
 
-	fs.Parse(os.Args[2:])
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		fmt.Printf("Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	store := loadTokenStore(*tokenFile)
 
@@ -162,7 +168,10 @@ func revokeCommand() {
 	fs := flag.NewFlagSet("revoke", flag.ExitOnError)
 	tokenFile := fs.String("file", "tokens.json", "tokens file path")
 
-	fs.Parse(os.Args[2:])
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		fmt.Printf("Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	if len(fs.Args()) < 1 {
 		fmt.Println("Error: token ID required")
