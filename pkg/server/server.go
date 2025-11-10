@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/0xRepo-Source/goflux/pkg/auth"
-	"github.com/0xRepo-Source/goflux/pkg/chunk"
 	"github.com/0xRepo-Source/goflux/pkg/resume"
 	"github.com/0xRepo-Source/goflux/pkg/storage"
 	"github.com/0xRepo-Source/goflux/pkg/transport"
@@ -17,8 +18,8 @@ import (
 // Server is a goflux server instance.
 type Server struct {
 	storage      storage.Storage
-	chunks       map[string][]chunk.Chunk // path -> chunks being assembled
-	sessionStore *resume.SessionStore     // tracks upload sessions for resume
+	chunksDir    string               // directory for temporary chunk storage
+	sessionStore *resume.SessionStore // tracks upload sessions for resume
 	mu           sync.Mutex
 	authMiddle   *auth.Middleware // nil if auth disabled
 }
@@ -30,9 +31,15 @@ func New(store storage.Storage, metaDir string) (*Server, error) {
 		return nil, fmt.Errorf("failed to create session store: %w", err)
 	}
 
+	// Create chunks directory for temporary storage
+	chunksDir := filepath.Join(metaDir, "chunks")
+	if err := os.MkdirAll(chunksDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create chunks directory: %w", err)
+	}
+
 	return &Server{
 		storage:      store,
-		chunks:       make(map[string][]chunk.Chunk),
+		chunksDir:    chunksDir,
 		sessionStore: sessionStore,
 	}, nil
 }
@@ -103,15 +110,19 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store the chunk
-	if s.chunks[chunkData.Path] == nil {
-		s.chunks[chunkData.Path] = make([]chunk.Chunk, chunkData.Total)
+	// Create session-specific chunks directory using path hash
+	sessionHash := fmt.Sprintf("%x", []byte(chunkData.Path))
+	sessionChunksDir := filepath.Join(s.chunksDir, sessionHash[:16])
+	if err := os.MkdirAll(sessionChunksDir, 0755); err != nil {
+		http.Error(w, fmt.Sprintf("failed to create session chunks dir: %v", err), http.StatusInternalServerError)
+		return
 	}
 
-	s.chunks[chunkData.Path][chunkData.ChunkID] = chunk.Chunk{
-		ID:       chunkData.ChunkID,
-		Data:     chunkData.Data,
-		Checksum: chunkData.Checksum,
+	// Write chunk to disk
+	chunkPath := filepath.Join(sessionChunksDir, fmt.Sprintf("chunk_%06d.dat", chunkData.ChunkID))
+	if err := os.WriteFile(chunkPath, chunkData.Data, 0644); err != nil {
+		http.Error(w, fmt.Sprintf("failed to write chunk: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	// Mark chunk as received in session
@@ -120,40 +131,65 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if all chunks received
-	allReceived := session.Completed || true // recheck manually
-	for _, c := range s.chunks[chunkData.Path] {
-		if c.Data == nil {
-			allReceived = false
-			break
-		}
-	}
-
-	if allReceived {
-		// Reassemble and save
-		chunker := chunk.New(0)
-		data, err := chunker.Reassemble(s.chunks[chunkData.Path])
-		if err != nil {
+	// Check if upload is complete
+	if session.Completed {
+		// Reassemble file from disk chunks
+		if err := s.reassembleFromDisk(sessionChunksDir, chunkData.Path, chunkData.Total); err != nil {
 			http.Error(w, fmt.Sprintf("reassembly failed: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		if err := s.storage.Put(chunkData.Path, data); err != nil {
-			http.Error(w, fmt.Sprintf("storage failed: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Clean up chunks and session
-		delete(s.chunks, chunkData.Path)
+		// Clean up chunks directory and session
+		os.RemoveAll(sessionChunksDir)
 		if err := s.sessionStore.DeleteSession(chunkData.Path); err != nil {
-			// Log error but don't fail the request - file was already saved
 			fmt.Printf("Warning: failed to delete session metadata: %v\n", err)
 		}
-		fmt.Printf("File saved: %s (%d bytes)\n", chunkData.Path, len(data))
 	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "chunk %d/%d received", chunkData.ChunkID+1, chunkData.Total)
+}
+
+// reassembleFromDisk reads chunks from disk and assembles the final file
+func (s *Server) reassembleFromDisk(chunksDir, remotePath string, totalChunks int) error {
+	// Open output file for writing
+	tempPath := filepath.Join(s.chunksDir, "temp_"+filepath.Base(remotePath))
+	outFile, err := os.Create(tempPath)
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer outFile.Close()
+
+	// Read and write each chunk in order
+	for i := 0; i < totalChunks; i++ {
+		chunkPath := filepath.Join(chunksDir, fmt.Sprintf("chunk_%06d.dat", i))
+		chunkData, err := os.ReadFile(chunkPath)
+		if err != nil {
+			return fmt.Errorf("failed to read chunk %d: %w", i, err)
+		}
+
+		if _, err := outFile.Write(chunkData); err != nil {
+			return fmt.Errorf("failed to write chunk %d: %w", i, err)
+		}
+	}
+
+	outFile.Close()
+
+	// Read the assembled file and put into storage
+	finalData, err := os.ReadFile(tempPath)
+	if err != nil {
+		return fmt.Errorf("failed to read assembled file: %w", err)
+	}
+
+	if err := s.storage.Put(remotePath, finalData); err != nil {
+		return fmt.Errorf("storage failed: %w", err)
+	}
+
+	// Clean up temp file
+	os.Remove(tempPath)
+
+	fmt.Printf("File saved: %s (%d bytes)\n", remotePath, len(finalData))
+	return nil
 }
 
 // UploadStatusResponse contains the status of an upload session

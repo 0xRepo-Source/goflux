@@ -203,3 +203,29 @@ goflux/
 **📖 See [docs/architecture.md](docs/architecture.md) for detailed architecture diagrams and deployment guides.**
 
 **📝 See [docs/coreidea.md](docs/coreidea.md) for design philosophy.**
+
+## Releases
+
+### v0.4.1 (November 10, 2025) - CRITICAL PATCH
+**Memory Efficiency Fix**
+- 🔧 Fixed critical memory issue where client loaded entire files into RAM
+- 🔧 Fixed server memory exhaustion with large file uploads
+- ✨ Client now streams files in 1MB chunks (constant memory usage)
+- ✨ Server writes chunks to disk immediately (no memory buffering)
+- ✅ Successfully tested with 6GB+ files
+- See [RELEASE_NOTES_v0.4.1.md](RELEASE_NOTES_v0.4.1.md)
+
+### v0.4.0 (November 10, 2025)
+**Configuration Simplification**
+- ✨ Simplified CLI to JSON config-only (removed flag clutter)
+- ✨ Changed default port from 8080 to 80
+- ✨ Dark mode Material Design web UI
+- 🔧 Fixed crypto.subtle errors for HTTP uploads
+- ⚠️ Known issue: Memory problems with large files (fixed in v0.4.1)
+- See [RELEASE_NOTES_v0.4.0.md](RELEASE_NOTES_v0.4.0.md)
+
+### v0.3.0
+- Resume support for interrupted transfers
+- Token-based authentication
+- Web UI for browser-based uploads
+- Chunked transfer with integrity verification
