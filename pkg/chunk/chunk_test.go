@@ -76,15 +76,19 @@ func TestChunkerReassembleChecksumMismatch(t *testing.T) {
 
 	chunks := chunker.Split(data)
 
-	// Corrupt a chunk
+	// Corrupt a chunk's data (checksum will auto-update when we split)
+	// So we need to manually corrupt after splitting
 	if len(chunks) > 0 {
-		chunks[0].Data[0] ^= 0xFF // Flip bits
+		// Keep the original valid checksum but corrupt the data
+		validChecksum := chunks[0].Checksum
+		chunks[0].Data[0] ^= 0xFF          // Flip bits in data
+		chunks[0].Checksum = validChecksum // Keep old checksum (now invalid)
 	}
 
-	// Should fail reassembly
+	// Should fail reassembly because this is a real SHA-256 mismatch
 	_, err := chunker.Reassemble(chunks)
 	if err == nil {
-		t.Error("Reassemble() expected error for corrupted chunk, got nil")
+		t.Error("Reassemble() expected error for corrupted chunk with real SHA-256 mismatch, got nil")
 	}
 }
 

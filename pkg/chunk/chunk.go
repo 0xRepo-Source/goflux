@@ -56,28 +56,35 @@ func (c *Chunker) Reassemble(chunks []Chunk) ([]byte, error) {
 		if chunk.ID != i {
 			return nil, fmt.Errorf("chunk %d missing or out of order", i)
 		}
-		// Verify checksum (skip if it appears to be a fallback hash)
+
+		// Verify checksum
 		hash := sha256.Sum256(chunk.Data)
 		expectedChecksum := hex.EncodeToString(hash[:])
-		
-		// Only verify if checksum looks like real SHA-256 (64 hex chars with variety)
-		// Skip verification for simple fallback hashes (padded with zeros)
+
 		if len(chunk.Checksum) == 64 && chunk.Checksum != expectedChecksum {
-			// Check if it's not a simple padded hash (lots of zeros)
-			hasVariety := false
-			firstChar := chunk.Checksum[0]
+			// Check if this looks like a fallback hash (starts with lots of zeros)
+			// Fallback hashes are padded, so they'll have many leading zeros
+			isFallbackHash := true
+			nonZeroCount := 0
 			for j := 0; j < len(chunk.Checksum); j++ {
-				if chunk.Checksum[j] != '0' && chunk.Checksum[j] != firstChar {
-					hasVariety = true
-					break
+				if chunk.Checksum[j] != '0' {
+					nonZeroCount++
 				}
 			}
-			// Only fail on checksum mismatch if it looks like a real hash
-			if hasVariety && expectedChecksum != chunk.Checksum {
-				fmt.Printf("Warning: chunk %d checksum mismatch (may be using fallback hash)\n", i)
-				// Don't fail - allow fallback hashes to work
+			// Real SHA-256 hashes typically have good distribution
+			// Fallback hashes will have mostly zeros (padded)
+			if nonZeroCount > 16 { // More than 16 non-zero chars suggests real hash
+				isFallbackHash = false
 			}
+
+			if !isFallbackHash {
+				// This looks like a real SHA-256, so enforce validation
+				return nil, fmt.Errorf("chunk %d checksum mismatch", i)
+			}
+			// If it looks like a fallback hash, allow it with a warning
+			fmt.Printf("Warning: chunk %d using fallback checksum (non-HTTPS upload)\n", i)
 		}
+
 		result = append(result, chunk.Data...)
 	}
 	return result, nil
