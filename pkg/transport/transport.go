@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 // Transport is an abstraction for underlying transport (ssh, quic, http).
@@ -31,6 +32,11 @@ type HTTPClient struct {
 }
 
 func NewHTTPClient(baseURL string) *HTTPClient {
+	// Normalize URL - add http:// if no scheme specified
+	if baseURL != "" && !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
+		baseURL = "http://" + baseURL
+	}
+
 	return &HTTPClient{
 		BaseURL: baseURL,
 		client:  &http.Client{},
