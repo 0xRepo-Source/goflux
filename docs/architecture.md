@@ -22,7 +22,7 @@ graph TB
         end
         
         subgraph App["Application Layer"]
-            GFS[goflux-server<br/>Port 8080<br/>HTTP]
+            GFS[goflux-server<br/>Port 80<br/>HTTP]
         end
         
         subgraph Data["Storage Layer"]
@@ -102,7 +102,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     A[Internet] -->|HTTPS :443| B[Caddy/Nginx]
-    B -->|HTTP :8080| C[goflux-server]
+    B -->|HTTP :80| C[goflux-server]
     C --> D[Storage]
     
     style B fill:#2196F3
@@ -112,12 +112,12 @@ graph LR
 **Setup:**
 ```bash
 # 1. Start goflux-server (local only)
-./goflux-server --addr localhost:8080 --storage /var/goflux/data
+./goflux-server --config goflux.json
 
 # 2. Configure Caddy (auto HTTPS)
 # Caddyfile:
 your-domain.com {
-    reverse_proxy localhost:8080
+    reverse_proxy localhost:80
 }
 ```
 

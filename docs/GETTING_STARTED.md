@@ -16,7 +16,7 @@ Open a terminal and run:
 .\bin\goflux-server.exe
 ```
 
-That's it! Your server is running on `http://localhost:8080` 🎉
+That's it! Your server is running on `http://localhost` (port 80) 🎉
 
 The server uses `goflux.json` for configuration (created automatically if missing).
 
@@ -110,7 +110,7 @@ Don't want to use the terminal? No problem!
 
 1. Start the server (same as Step 1 above)
 2. Open your web browser
-3. Go to: `http://localhost:8080`
+3. Go to: `http://localhost`
 4. Drag and drop files to upload! 📂
 
 ## Adding Security (Optional)
@@ -170,12 +170,12 @@ $env:GOFLUX_TOKEN = "tok_abc123def456..."
 ## Troubleshooting
 
 ### "Server failed to start"
-- Make sure nothing else is using port 8080
+- Make sure nothing else is using port 80
 - Edit `goflux.json` to change the port in `server.address`
 
 ### "Connection refused"
 - Is the server running? Check the first terminal window
-- Are you using the right port? Default is 8080
+- Are you using the right port? Default is 80
 - Check `server_url` in your client config
 
 ### "Authentication failed"
@@ -195,7 +195,7 @@ $env:GOFLUX_TOKEN = "tok_abc123def456..."
 ```json
 {
   "client": {
-    "server_url": "http://localhost:8080"
+    "server_url": "http://localhost"
   }
 }
 ```
@@ -252,7 +252,7 @@ Here's a complete example of uploading vacation photos:
 | Download file | `.\bin\goflux.exe get /file.txt file.txt` |
 | List files | `.\bin\goflux.exe ls /` |
 | Use different config | `.\bin\goflux.exe --config prod.json ls` |
-| Use web UI | Open browser to `http://localhost:8080` |
+| Use web UI | Open browser to `http://localhost` |
 | Create token | `.\bin\goflux-admin.exe create --user yourname` |
 | Stop server | Press `Ctrl+C` in the server terminal |
 

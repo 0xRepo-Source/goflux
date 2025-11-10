@@ -54,7 +54,7 @@ Edit `goflux.json` to match your setup:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `address` | Listen address and port | `"0.0.0.0:80"` or `":8080"` |
+| `address` | Listen address and port | `"0.0.0.0:80"` or `":9000"` |
 | `storage_dir` | Directory to store uploaded files | `"./data"` |
 | `webui_dir` | Web UI directory (empty to disable) | `"./web"` or `""` |
 | `meta_dir` | Metadata directory for resume sessions | `"./.goflux-meta"` |
@@ -78,7 +78,7 @@ You can maintain different configs for different scenarios:
 ```json
 {
   "client": {
-    "server_url": "http://localhost:8080",
+    "server_url": "http://localhost",
     ...
   }
 }
@@ -125,11 +125,11 @@ Then use them:
 ```json
 {
   "server": {
-    "address": "0.0.0.0:8080",
+    "address": "0.0.0.0:80",
     "storage_dir": "./data"
   },
   "client": {
-    "server_url": "http://localhost:8080",
+    "server_url": "http://localhost",
     "chunk_size": 1048576
   }
 }

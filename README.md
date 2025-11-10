@@ -19,20 +19,13 @@ go build -o bin/goflux.exe ./cmd/goflux
 
 ```bash
 # With web UI (default)
-.\bin\goflux-server.exe --storage ./data --addr :8080
+.\bin\goflux-server.exe
 
-# Without web UI
-.\bin\goflux-server.exe --storage ./data --addr :8080 --web ""
-
-# Then open http://localhost:8080 in your browser
-# Domain open http/s:<yourdomain.com> in your browser
+# Then open http://localhost in your browser
+# Or access via your domain/IP: http://yourdomain.com
 ```
 
-Options:
-- `--storage <dir>` - Directory to store files (default: `./data`)
-- `--addr <address>` - Server listen address (default: `:8080`)
-- `--web <dir>` - Web UI directory (default: `./web`, use `""` to disable)
-- `--version` - Print version
+The server uses `goflux.json` for configuration (created automatically if missing).
 
 ### Use Client
 
@@ -59,14 +52,14 @@ goflux uses JSON configuration files instead of command-line flags for cleaner u
 ```json
 {
   "server": {
-    "address": "0.0.0.0:8080",
+    "address": "0.0.0.0:80",
     "storage_dir": "./data",
     "webui_dir": "./web",
     "meta_dir": "./.goflux-meta",
     "tokens_file": ""
   },
   "client": {
-    "server_url": "http://localhost:8080",
+    "server_url": "http://localhost",
     "chunk_size": 1048576,
     "token": ""
   }
