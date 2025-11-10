@@ -151,20 +151,22 @@ $env:GOFLUX_TOKEN = "<your-token>"
 ```
 goflux/
   cmd/
-    goflux-server/  # server binary
-    goflux/         # client CLI
+    goflux-server/    # Server binary
+    goflux/           # Client CLI
+    goflux-admin/     # Token management CLI
   pkg/
-    auth/           # SSH, token, JWT (planned)
-    proto/          # request/response types
-    server/         # session handling, HTTP endpoints
-    storage/        # local FS, S3 (planned)
-    transport/      # HTTP client, QUIC/SSH (planned)
-    chunk/          # chunking, resume, integrity
-  internal/
-    log/            # logging helpers
-    config/         # configuration
+    auth/             # Token-based authentication
+    server/           # HTTP server and handlers
+    storage/          # Storage backends (local filesystem)
+    transport/        # HTTP client
+    chunk/            # Chunking and integrity verification
+    resume/           # Upload session management
+    config/           # Configuration file support
+  web/                # Web UI (HTML/CSS/JS)
+  docs/               # Documentation
+  examples/           # Usage examples
 ```
 
 **📖 See [docs/architecture.md](docs/architecture.md) for detailed architecture diagrams and deployment guides.**
 
-See `coreidea.md` for design philosophy and `docs/overview.md` for more details.
+**📝 See [docs/coreidea.md](docs/coreidea.md) for design philosophy.**

@@ -6,11 +6,20 @@
 *.so
 *.dylib
 
-# Test data
+# Test and temporary data
 /data/
 /testdata/
+/test-data/
+/.goflux-meta/
 *.txt
 !examples/*.txt
+!docs/*.txt
+!README.txt
+
+# Configuration (keep examples, ignore local configs)
+goflux-local.json
+goflux-external.json
+tokens.json
 
 # OS
 .DS_Store
