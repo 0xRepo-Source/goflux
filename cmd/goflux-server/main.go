@@ -6,16 +6,18 @@ import (
 	"log"
 
 	"github.com/0xRepo-Source/goflux/pkg/auth"
+	"github.com/0xRepo-Source/goflux/pkg/config"
 	"github.com/0xRepo-Source/goflux/pkg/server"
 	"github.com/0xRepo-Source/goflux/pkg/storage"
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "server address")
-	storageDir := flag.String("storage", "./data", "storage directory")
-	webUI := flag.String("web", "./web", "web UI directory (empty to disable)")
-	tokenFile := flag.String("tokens", "", "tokens file for authentication (empty to disable auth)")
-	metaDir := flag.String("meta", "./.goflux-meta", "metadata directory for resume sessions")
+	configFile := flag.String("config", "goflux.json", "configuration file path")
+	addr := flag.String("addr", "", "server address (overrides config)")
+	storageDir := flag.String("storage", "", "storage directory (overrides config)")
+	webUI := flag.String("web", "", "web UI directory (overrides config)")
+	tokenFile := flag.String("tokens", "", "tokens file for authentication (overrides config)")
+	metaDir := flag.String("meta", "", "metadata directory for resume sessions (overrides config)")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -24,32 +26,56 @@ func main() {
 		return
 	}
 
+	// Load or create configuration
+	cfg, err := config.LoadOrCreateConfig(*configFile)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Command-line flags override config file
+	if *addr != "" {
+		cfg.Server.Address = *addr
+	}
+	if *storageDir != "" {
+		cfg.Server.StorageDir = *storageDir
+	}
+	if *webUI != "" {
+		cfg.Server.WebUIDir = *webUI
+	}
+	if *tokenFile != "" {
+		cfg.Server.TokensFile = *tokenFile
+	}
+	if *metaDir != "" {
+		cfg.Server.MetaDir = *metaDir
+	}
+
 	// Create storage backend
-	store, err := storage.NewLocal(*storageDir)
+	store, err := storage.NewLocal(cfg.Server.StorageDir)
 	if err != nil {
 		log.Fatalf("Failed to create storage: %v", err)
 	}
 
 	// Create server
-	srv, err := server.New(store, *metaDir)
+	srv, err := server.New(store, cfg.Server.MetaDir)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
 	// Enable authentication if token file provided
-	if *tokenFile != "" {
-		tokenStore, err := auth.NewTokenStore(*tokenFile)
+	if cfg.Server.TokensFile != "" {
+		tokenStore, err := auth.NewTokenStore(cfg.Server.TokensFile)
 		if err != nil {
 			log.Fatalf("Failed to load tokens: %v", err)
 		}
 		srv.EnableAuth(tokenStore)
-		fmt.Printf("Loaded authentication from: %s\n", *tokenFile)
+		fmt.Printf("Loaded authentication from: %s\n", cfg.Server.TokensFile)
 	}
 
-	fmt.Printf("Starting goflux-server on %s\n", *addr)
-	fmt.Printf("Storage directory: %s\n", *storageDir)
+	fmt.Printf("Starting goflux-server on %s\n", cfg.Server.Address)
+	fmt.Printf("Storage directory: %s\n", cfg.Server.StorageDir)
+	fmt.Printf("Configuration file: %s\n", *configFile)
 
-	if err := srv.Start(*addr, *webUI); err != nil {
+	if err := srv.Start(cfg.Server.Address, cfg.Server.WebUIDir); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

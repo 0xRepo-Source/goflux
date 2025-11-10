@@ -7,15 +7,17 @@ import (
 	"os"
 
 	"github.com/0xRepo-Source/goflux/pkg/chunk"
+	"github.com/0xRepo-Source/goflux/pkg/config"
 	"github.com/0xRepo-Source/goflux/pkg/transport"
 	"github.com/schollz/progressbar/v3"
 )
 
 func main() {
 	// Global flags
-	serverAddr := flag.String("server", "http://localhost:8080", "server address")
-	chunkSize := flag.Int("chunk-size", 1024*1024, "chunk size in bytes")
-	token := flag.String("token", "", "authentication token (or use GOFLUX_TOKEN env var)")
+	configFile := flag.String("config", "goflux.json", "configuration file path")
+	serverAddr := flag.String("server", "", "server address (overrides config)")
+	chunkSize := flag.Int("chunk-size", 0, "chunk size in bytes (overrides config)")
+	token := flag.String("token", "", "authentication token (overrides config and env var)")
 	version := flag.Bool("version", false, "print version")
 	flag.Parse()
 
@@ -30,18 +32,35 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get token from flag or environment
+	// Load or create configuration
+	cfg, err := config.LoadOrCreateConfig(*configFile)
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Command-line flags override config file
+	if *serverAddr != "" {
+		cfg.Client.ServerURL = *serverAddr
+	}
+	if *chunkSize > 0 {
+		cfg.Client.ChunkSize = *chunkSize
+	}
+
+	// Get token: flag > config > environment
 	authToken := *token
+	if authToken == "" && cfg.Client.Token != "" {
+		authToken = cfg.Client.Token
+	}
 	if authToken == "" {
 		authToken = os.Getenv("GOFLUX_TOKEN")
 	}
 
-	client := transport.NewHTTPClient(*serverAddr)
+	client := transport.NewHTTPClient(cfg.Client.ServerURL)
 	if authToken != "" {
 		client.SetAuthToken(authToken)
 	}
 
-	chunker := chunk.New(*chunkSize)
+	chunker := chunk.New(cfg.Client.ChunkSize)
 
 	command := args[0]
 	switch command {
