@@ -183,7 +183,7 @@ function displayFiles(files) {
         fileItem.className = 'file-item';
 
         const isDirectory = false; // We don't have directory info yet
-        const icon = isDirectory ? '📁' : '📄';
+        const icon = isDirectory ? '▶' : '■';
 
         fileItem.innerHTML = `
             <div class="file-icon">${icon}</div>
