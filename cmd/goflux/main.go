@@ -172,10 +172,10 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 				bar.Close()
 				return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 			}
-			bar.Add(1)
+			_ = bar.Add(1)
 		}
 
-		bar.Finish()
+		_ = bar.Finish()
 		fmt.Printf("\n✓ Resume complete: uploaded %d new chunks\n", totalToUpload)
 		return nil
 	} else {
@@ -210,10 +210,10 @@ func doPut(client *transport.HTTPClient, chunker *chunk.Chunker, localPath, remo
 			bar.Close()
 			return fmt.Errorf("failed to upload chunk %d: %w", i, err)
 		}
-		bar.Add(1)
+		_ = bar.Add(1)
 	}
 
-	bar.Finish()
+	_ = bar.Finish()
 	fmt.Printf("\n✓ Upload complete: %s → %s\n", localPath, remotePath)
 	return nil
 }
@@ -230,7 +230,7 @@ func doGet(client *transport.HTTPClient, remotePath, localPath string) error {
 		progressbar.OptionShowIts(),
 		progressbar.OptionEnableColorCodes(true),
 	)
-	bar.RenderBlank()
+	_ = bar.RenderBlank()
 
 	data, err := client.Download(remotePath)
 	if err != nil {
@@ -238,7 +238,7 @@ func doGet(client *transport.HTTPClient, remotePath, localPath string) error {
 		return err
 	}
 
-	bar.Finish()
+	_ = bar.Finish()
 	fmt.Printf("\n")
 
 	if err := os.WriteFile(localPath, data, 0644); err != nil {
