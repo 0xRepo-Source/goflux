@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Println("goflux version: 0.2.0")
+		fmt.Println("goflux version: 0.3.0")
 		return
 	}
 
