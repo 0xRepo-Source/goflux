@@ -10,7 +10,7 @@
 - File-based storage (tokens.json)
 
 ### Server Authentication (goflux-server)
-- **Optional authentication** via `--tokens` flag
+- **Optional authentication** via config file `tokens_file` setting
 - Bearer token validation on all API endpoints
 - **Permission-based access control**:
   - `upload` - File upload permission
@@ -23,7 +23,7 @@
 - Revocation checking
 
 ### Client Authentication (goflux)
-- **Token authentication** via `--token` flag or `GOFLUX_TOKEN` env var
+- **Token authentication** via config file or `GOFLUX_TOKEN` env var
 - Automatic Bearer token header injection
 - Works with all commands (put/get/ls)
 
@@ -31,7 +31,7 @@
 
 ### Without Authentication
 ```bash
-.\bin\goflux-server.exe --storage ./testdata
+.\bin\goflux-server.exe
 # Output: ⚠️  Authentication disabled - all endpoints are public!
 ```
 - ✅ Server starts normally
@@ -39,9 +39,21 @@
 - ✅ Warning message displayed
 
 ### With Authentication
+
+Edit `goflux.json`:
+```json
+{
+  "server": {
+    "tokens_file": "tokens.json"
+  }
+}
+```
+
+Then start:
 ```bash
-.\bin\goflux-server.exe --storage ./testdata --tokens tokens.json
+.\bin\goflux-server.exe
 # Output: Authentication enabled
+#         Loaded authentication from: tokens.json
 ```
 - ✅ Loads tokens from file
 - ✅ Returns 401 for unauthenticated requests
@@ -73,9 +85,12 @@
 - ✅ Persistence to tokens.json
 
 ### Client Usage
+
+Set token in config or environment:
 ```bash
-# With valid token
-.\bin\goflux.exe --token "c6cd87bf3280423fbf4b7124ffb2d57c3ac62c96551cb9f07d51055ecfaceb1f" ls /
+# Via environment variable
+$env:GOFLUX_TOKEN = "tok_c6cd87bf3280423fbf4b7124ffb2d57c..."
+.\bin\goflux.exe ls /
 # Output: Files in /: (success)
 
 # Without token

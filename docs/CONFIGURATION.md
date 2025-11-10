@@ -117,32 +117,54 @@ Then use them:
 .\bin\goflux.exe --config goflux-prod.json put file.txt /file.txt
 ```
 
-## Command-Line Overrides
+## Environment Configuration Pattern
 
-Flags override config file values:
+**Best practice:** Keep environment-specific configs separate
 
+**goflux.json** (default, checked into git):
+```json
+{
+  "server": {
+    "address": "0.0.0.0:8080",
+    "storage_dir": "./data"
+  },
+  "client": {
+    "server_url": "http://localhost:8080",
+    "chunk_size": 1048576
+  }
+}
+```
+
+**goflux-prod.json** (production, in .gitignore):
+```json
+{
+  "client": {
+    "server_url": "https://myserver.com",
+    "token": "tok_production_secret"
+  }
+}
+```
+
+Then:
 ```bash
-# Use config but override server URL
-.\bin\goflux.exe --config goflux.json --server http://different-server put file.txt /file.txt
+# Development (uses goflux.json)
+.\bin\goflux.exe ls
 
-# Use config but override chunk size
-.\bin\goflux.exe --config goflux.json --chunk-size 2097152 put file.txt /file.txt
-
-# Server with config but override address
-.\bin\goflux-server.exe --config goflux.json --addr :9000
+# Production
+.\bin\goflux.exe --config goflux-prod.json ls
 ```
 
 ## Benefits
 
 ✅ **No Hardcoding** - Change IPs/domains/ports without recompiling  
 ✅ **Multiple Environments** - Easy switching between dev/staging/prod  
-✅ **Team Sharing** - Commit configs to git (except tokens!)  
-✅ **Less Typing** - No need to specify `--server` every time  
-✅ **Flexible** - Can still override with flags when needed
+✅ **Team Sharing** - Commit default configs to git (except tokens!)  
+✅ **Simpler CLI** - No messy flags to remember  
+✅ **Portable** - Share config files between team members
 
 ## Security Note
 
 ⚠️ **Never commit tokens to git!** Either:
-- Use empty `token` in config and set via flag/env var
-- Add `goflux-prod.json` to `.gitignore`
-- Use environment variable `GOFLUX_TOKEN`
+- Use empty `token` in config and set via `GOFLUX_TOKEN` env var
+- Add `goflux-*-prod.json` to `.gitignore`
+- Keep tokens only in environment variables

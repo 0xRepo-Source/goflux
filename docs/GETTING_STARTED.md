@@ -13,10 +13,12 @@ goflux lets you upload and download files to a server. Think of it like a person
 Open a terminal and run:
 
 ```bash
-.\bin\goflux-server.exe --storage ./myfiles
+.\bin\goflux-server.exe
 ```
 
 That's it! Your server is running on `http://localhost:8080` 🎉
+
+The server uses `goflux.json` for configuration (created automatically if missing).
 
 ### Step 2: Upload a File
 
@@ -123,28 +125,45 @@ Want to require passwords? Here's how:
 
 You'll get something like:
 ```
-Token: abc123def456...
+Token: tok_abc123def456...
 ```
 
 **IMPORTANT:** Copy this token! You won't see it again.
 
-### Step 2: Start Server with Authentication
+### Step 2: Configure Server with Authentication
 
-```bash
-.\bin\goflux-server.exe --storage ./myfiles --tokens tokens.json
+Edit `goflux.json` to enable authentication:
+
+```json
+{
+  "server": {
+    "tokens_file": "tokens.json"
+  }
+}
 ```
 
-### Step 3: Use Your Token
-
-Now you need the token for every command:
+Then start the server:
 
 ```bash
-.\bin\goflux.exe --token "abc123def456..." put myfile.txt /myfile.txt
+.\bin\goflux-server.exe
 ```
 
-**Pro tip:** Set it once and forget it:
+### Step 3: Configure Client with Token
+
+Edit your `goflux.json` to add the token:
+
+```json
+{
+  "client": {
+    "token": "tok_abc123def456..."
+  }
+}
+```
+
+Or use environment variable:
+
 ```bash
-$env:GOFLUX_TOKEN = "abc123def456..."
+$env:GOFLUX_TOKEN = "tok_abc123def456..."
 .\bin\goflux.exe put myfile.txt /myfile.txt
 ```
 
@@ -152,20 +171,49 @@ $env:GOFLUX_TOKEN = "abc123def456..."
 
 ### "Server failed to start"
 - Make sure nothing else is using port 8080
-- Try a different port: `.\bin\goflux-server.exe --addr :9000 --storage ./myfiles`
+- Edit `goflux.json` to change the port in `server.address`
 
 ### "Connection refused"
 - Is the server running? Check the first terminal window
 - Are you using the right port? Default is 8080
+- Check `server_url` in your client config
 
 ### "Authentication failed"
-- Did you forget the `--token`?
+- Did you set the token in config or environment variable?
 - Is your token correct? (no extra spaces!)
-- Try setting `$env:GOFLUX_TOKEN` instead
+- Make sure server has `tokens_file` configured
 
 ### "File not found"
 - Use forward slashes: `/photos/file.jpg` not `\photos\file.jpg`
 - Server paths start with `/`
+
+## Configuration Files
+
+### Use Different Configs for Different Environments
+
+**Development (goflux-dev.json):**
+```json
+{
+  "client": {
+    "server_url": "http://localhost:8080"
+  }
+}
+```
+
+**Production (goflux-prod.json):**
+```json
+{
+  "client": {
+    "server_url": "http://myserver.com",
+    "token": "tok_production_token"
+  }
+}
+```
+
+Then use:
+```bash
+.\bin\goflux.exe --config goflux-prod.json put file.txt /file.txt
+```
 
 ## Full Example Session
 
@@ -173,7 +221,7 @@ Here's a complete example of uploading vacation photos:
 
 ```bash
 # Terminal 1: Start the server
-.\bin\goflux-server.exe --storage ./myfiles
+.\bin\goflux-server.exe
 
 # Terminal 2: Upload some photos
 .\bin\goflux.exe put beach.jpg /vacation/beach.jpg
@@ -189,19 +237,21 @@ Here's a complete example of uploading vacation photos:
 
 ## What Next?
 
-- **Share with friends:** Give them your server address (like `http://192.168.1.100:8080`) and a token
+- **Share with friends:** Give them your server address and a token, or share your config file
 - **Use from anywhere:** Deploy the server to a cloud provider
 - **Organize files:** Create folders like `/photos`, `/documents`, `/backups`
 - **Stay secure:** Always use tokens when the server is accessible from the internet!
+- **Multiple environments:** Create different config files for dev/staging/prod
 
 ## Cheat Sheet
 
 | What do you want to do? | Command |
 |-------------------------|---------|
-| Start server | `.\bin\goflux-server.exe --storage ./myfiles` |
+| Start server | `.\bin\goflux-server.exe` |
 | Upload file | `.\bin\goflux.exe put file.txt /file.txt` |
 | Download file | `.\bin\goflux.exe get /file.txt file.txt` |
 | List files | `.\bin\goflux.exe ls /` |
+| Use different config | `.\bin\goflux.exe --config prod.json ls` |
 | Use web UI | Open browser to `http://localhost:8080` |
 | Create token | `.\bin\goflux-admin.exe create --user yourname` |
 | Stop server | Press `Ctrl+C` in the server terminal |
@@ -210,6 +260,7 @@ Here's a complete example of uploading vacation photos:
 
 - 📖 Full documentation: [README.md](../README.md)
 - 🔒 Security guide: [AUTHENTICATION.md](AUTHENTICATION.md)
+- ⚙️ Configuration guide: [CONFIGURATION.md](CONFIGURATION.md)
 - 🏗️ Architecture details: [architecture.md](architecture.md)
 
 ---
