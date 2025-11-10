@@ -145,7 +145,10 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 
 		// Clean up chunks and session
 		delete(s.chunks, chunkData.Path)
-		s.sessionStore.DeleteSession(chunkData.Path)
+		if err := s.sessionStore.DeleteSession(chunkData.Path); err != nil {
+			// Log error but don't fail the request - file was already saved
+			fmt.Printf("Warning: failed to delete session metadata: %v\n", err)
+		}
 		fmt.Printf("File saved: %s (%d bytes)\n", chunkData.Path, len(data))
 	}
 
